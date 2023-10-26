@@ -24,4 +24,10 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.23" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="App.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

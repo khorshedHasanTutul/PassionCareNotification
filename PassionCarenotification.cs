@@ -24,7 +24,6 @@ namespace PassionCareNotification
 
             var timer = new System.Threading.Timer(async _ =>
             {
-                //Console.WriteLine("Refreshing the SignalR connection...");
                 try
                 {
                     //await _connection.StopAsync();
@@ -44,7 +43,6 @@ namespace PassionCareNotification
             });
 
             _connection.StartAsync();
-            // Set the user ID for the connection
             _connection.InvokeAsync("SetUserId", UserIdentity());
 
             _connection.Closed += async (exception) =>
@@ -56,6 +54,7 @@ namespace PassionCareNotification
 
         public string UserIdentity()
         {
+            #region oldCode
             //var appSettings = ConfigurationManager.AppSettings;
             //string FilePathName = appSettings["UserIdentityLocation"];
             //if (FilePathName != null)
@@ -75,15 +74,53 @@ namespace PassionCareNotification
             //    }
             //}
             //return "0";
-
-
-            // Specify the path to your CSV file
+            #endregion
 
             string downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
-            string filePath = downloadFolder + "\\UserInfo.csv";
+            //string filePath = downloadFolder + "\\UserInfoPassionCare.csv";
             int columnIndexToRead = 0;
+            string pattern = "UserInfoPassionCare";
+            string lastFileName = "";
 
-            using (TextFieldParser parser = new TextFieldParser(filePath))
+            string[] files = Directory.GetFiles(downloadFolder)
+            .Where(x => Path.GetFileName(x).StartsWith(pattern, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+            var indexes = files.Select(file =>
+            {
+                string fileName = Path.GetFileNameWithoutExtension(file);
+                int startIndex = fileName.IndexOf('(');
+                int endIndex = fileName.LastIndexOf(')');
+
+                if (startIndex >= 0 && endIndex > startIndex)
+                {
+                    string indexStr = fileName.Substring(startIndex + 1, endIndex - startIndex - 1);
+                    if (int.TryParse(indexStr, out int index))
+                    {
+                        return index;
+                    }
+                }
+            return -1;
+            
+            }).Where(index => index >= 0).ToList();
+
+            if (indexes.Count == 0)
+            {
+                lastFileName = "UserInfoPassionCare.csv";
+            }
+            else if (indexes.Count == -1)
+            {
+                lastFileName = "UserInfoPassionCare.csv";
+            }
+            else
+            {
+                int maxIndex = indexes.Max();
+                lastFileName = $"{pattern} ({maxIndex}).csv";
+            }
+
+            string lastFilePath = Path.Combine(downloadFolder, lastFileName);
+
+            using (TextFieldParser parser = new TextFieldParser(lastFilePath))
             {
                 parser.TextFieldType = FieldType.Delimited;
                 parser.SetDelimiters(",");
