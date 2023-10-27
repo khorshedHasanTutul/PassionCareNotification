@@ -6,50 +6,44 @@ namespace PassionCareNotification
 {
     public partial class PassionCarenotification : Form
     {
-        public readonly HubConnection _connection;
+        public  HubConnection _connection;
         public PassionCarenotification()
         {
             InitializeComponent();
-            //System.IO.File.WriteAllText("D:\\HHAXCookies\\hhaxCookies.txt", DateTime.Now.ToString());
+            InitializeSignalRConnection();
+        }
+
+        public void InitializeSignalRConnection()
+        {
             var appsettings = ConfigurationManager.AppSettings;
             this.ShowInTaskbar = false;
-            string userId = "0";
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(appsettings["BasePath"])
-                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
                 .Build();
 
-            var refreshInterval = TimeSpan.FromSeconds(5);
-
-            var timer = new System.Threading.Timer(async _ =>
+            _connection.StartAsync().ContinueWith(task =>
             {
-                try
+                if (task.IsFaulted)
                 {
-                    //await _connection.StopAsync();
-                    await _connection.StartAsync();
-                    await _connection.InvokeAsync("SetUserId", UserIdentity());
+                    _connection.Closed += async (exception) =>
+                    {
+                        await Task.Delay(2000000);
+                        await _connection.StartAsync();
+                    };
                 }
-                catch (Exception ex)
+                else
                 {
-                    //Console.WriteLine($"Error while refreshing the connection: {ex.Message}");
-                    //System.IO.File.AppendAllText("D:\\HHAXCookies\\hhaxCookies.txt", ex.Message.ToString());
+                    
                 }
-            }, null, TimeSpan.Zero, refreshInterval);
+            });
+            _connection.InvokeAsync("SetUserId", UserIdentity());
 
             _connection.On<string>("ReceiveNotification", message =>
             {
                 ReceiveMessageToUser(message);
             });
 
-            _connection.StartAsync();
-            _connection.InvokeAsync("SetUserId", UserIdentity());
-
-            _connection.Closed += async (exception) =>
-            {
-                await Task.Delay(2000);
-                await _connection.StartAsync();
-            };
         }
 
         public string UserIdentity()
