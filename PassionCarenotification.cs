@@ -6,7 +6,7 @@ namespace PassionCareNotification
 {
     public partial class PassionCarenotification : Form
     {
-        public  HubConnection _connection;
+        public HubConnection _connection;
         public PassionCarenotification()
         {
             InitializeComponent();
@@ -20,23 +20,21 @@ namespace PassionCareNotification
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(appsettings["BasePath"])
+                .WithAutomaticReconnect()
                 .Build();
 
             _connection.StartAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                 {
-                    _connection.Closed += async (exception) =>
-                    {
-                        await Task.Delay(2000000);
-                        await _connection.StartAsync();
-                    };
+
                 }
                 else
                 {
-                    
+
                 }
             });
+
             _connection.InvokeAsync("SetUserId", UserIdentity());
 
             _connection.On<string>("ReceiveNotification", message =>
@@ -44,6 +42,25 @@ namespace PassionCareNotification
                 ReceiveMessageToUser(message);
             });
 
+            _connection.Closed += async (exception) =>
+            {
+                await Task.Delay(5 * 60000);
+                await _connection.StartAsync();
+            };
+        }
+
+        public static string GetExeLocation()
+        {
+            try
+            {
+                string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
+                return Path.GetDirectoryName(exePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                return null;
+            }
         }
 
         public string UserIdentity()
@@ -69,10 +86,92 @@ namespace PassionCareNotification
             //}
             //return "0";
             #endregion
+            string destinationFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string downloadFolder = "";
+            downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
+            string latestFilename = LatestFileUserInfoPassionCare(downloadFolder);
 
-            string downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
-            //string filePath = downloadFolder + "\\UserInfoPassionCare.csv";
+            if (Directory.Exists(Path.Combine(destinationFolder, "PassionCareNotification")))
+            {
+                if (Directory.GetFiles(Path.Combine(destinationFolder, "PassionCareNotification")).Length > 0)
+                {
+                    string lastFile = LatestFileUserInfoPassionCare(Path.Combine(destinationFolder, "PassionCareNotification"));
+                    string user = ReadValueFrom(lastFile);
+                    if (user != null)
+                    {
+                        return user;
+                    }
+                }
+            }
+            else if (File.Exists(latestFilename))
+            {
+                downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
+                string sourceFilePath = latestFilename;
+                if (File.Exists(sourceFilePath))
+                {
+                    string destinationFilePath = Path.Combine(destinationFolder, "PassionCareNotification");
+                    try
+                    {
+                        Directory.CreateDirectory(destinationFilePath);
+                        if (Directory.GetFiles(destinationFilePath).Length > 0)
+                        {
+                            if (File.Exists(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath))))
+                            {
+                                DeleteFilesInFolder(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath)));
+                            }
+                        }
+                        File.Copy(sourceFilePath, Path.Combine(destinationFilePath, Path.GetFileName(latestFilename)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error: " + ex.Message);
+                    }
+                }
+            }
+            else
+            {
+                downloadFolder = GetExeLocation();
+                latestFilename = LatestFileUserInfoPassionCare(downloadFolder);
+                string sourceFilePath = latestFilename;
+                if (File.Exists(sourceFilePath))
+                {
+                    string destinationFilePath = Path.Combine(destinationFolder, "PassionCareNotification");
+                    try
+                    {
+                        Directory.CreateDirectory(destinationFilePath);
+                        if (File.Exists(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath))))
+                        {
+                            DeleteFilesInFolder(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath)));
+                        }
+                        File.Copy(sourceFilePath, Path.Combine(destinationFilePath, Path.GetFileName(latestFilename)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    return "0";
+                }
+            }
+
+            string destinationFilePatha = Path.Combine(destinationFolder, "PassionCareNotification");
+            if (File.Exists(LatestFileUserInfoPassionCare(destinationFilePatha)))
+            {
+                string userId = ReadValueFrom(LatestFileUserInfoPassionCare(destinationFilePatha));
+                if (userId != null)
+                {
+                    return userId;
+                }
+            }
+            return "0";
+        }
+
+        private string LatestFileUserInfoPassionCare(string downloadFolder)
+        {
             int columnIndexToRead = 0;
+
             string pattern = "UserInfoPassionCare";
             string lastFileName = "";
 
@@ -94,8 +193,8 @@ namespace PassionCareNotification
                         return index;
                     }
                 }
-            return -1;
-            
+                return -1;
+
             }).Where(index => index >= 0).ToList();
 
             if (indexes.Count == 0)
@@ -111,40 +210,68 @@ namespace PassionCareNotification
                 int maxIndex = indexes.Max();
                 lastFileName = $"{pattern} ({maxIndex}).csv";
             }
-
             string lastFilePath = Path.Combine(downloadFolder, lastFileName);
+            return lastFilePath;
+        }
 
-            using (TextFieldParser parser = new TextFieldParser(lastFilePath))
+        public static void DeleteFilesInFolder(string filePath)
+        {
+            try
             {
-                parser.TextFieldType = FieldType.Delimited;
-                parser.SetDelimiters(",");
-
-                while (!parser.EndOfData)
+                if (File.Exists(filePath))
                 {
-                    string[] fields = parser.ReadFields();
+                    File.Delete(filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
+        }
 
-                    if (columnIndexToRead >= 0 && columnIndexToRead < fields.Length)
+        private string ReadValueFrom(string lastFilePath)
+        {
+            int columnIndexToRead = 0;
+            try
+            {
+                using (TextFieldParser parser = new TextFieldParser(lastFilePath))
+                {
+                    parser.TextFieldType = FieldType.Delimited;
+                    parser.SetDelimiters(",");
+
+                    while (!parser.EndOfData)
                     {
-                        string columnValue = fields[columnIndexToRead];
-                        return columnValue;
-                    }
-                    else
-                    {
-                        return "0";
+                        string[] fields = parser.ReadFields();
+
+                        if (columnIndexToRead >= 0 && columnIndexToRead < fields.Length)
+                        {
+                            string columnValue = fields[columnIndexToRead];
+                            return columnValue;
+                        }
+                        else
+                        {
+                            return "0";
+                        }
                     }
                 }
+
+            }
+            catch (Exception)
+            {
+                return "0";
+
             }
             return "0";
         }
 
         public void ReceiveMessageToUser(string message)
         {
-            notifyIcon1.Icon = new System.Drawing.Icon(Path.GetFullPath("bell-icon.ico"));
-            notifyIcon1.Text = "Notification By PassionCare.";
-            notifyIcon1.Visible = true;
-            notifyIcon1.BalloonTipTitle = message.ToString();
-            notifyIcon1.BalloonTipText = "Notification By PassionCare.";
-            notifyIcon1.ShowBalloonTip(100);
+            PassionCareNotify.Icon = new System.Drawing.Icon(Path.GetFullPath("bell-icon2.ico"));
+            PassionCareNotify.Text = "Notification By PassionCare.";
+            PassionCareNotify.Visible = true;
+            PassionCareNotify.BalloonTipTitle = message.ToString();
+            PassionCareNotify.BalloonTipText = "Notification By PassionCare.";
+            PassionCareNotify.ShowBalloonTip(100);
         }
     }
 }

@@ -30,20 +30,22 @@
         {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PassionCarenotification));
-            notifyIcon1 = new NotifyIcon(components);
+            PassionCareNotify = new NotifyIcon(components);
             SuspendLayout();
             // 
-            // notifyIcon1
+            // PassionCareNotify
             // 
-            notifyIcon1.Icon = (Icon)resources.GetObject("notifyIcon1.Icon");
-            notifyIcon1.Text = "notifyIcon1";
-            notifyIcon1.Visible = true;
+            PassionCareNotify.BalloonTipIcon = ToolTipIcon.Info;
+            PassionCareNotify.Icon = (Icon)resources.GetObject("PassionCareNotify.Icon");
+            PassionCareNotify.Text = "PassionCareNotify";
+            PassionCareNotify.Visible = true;
             // 
             // PassionCarenotification
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "PassionCarenotification";
             Opacity = 0D;
             Text = "PassionCarenotification";
@@ -51,7 +53,6 @@
         }
 
         #endregion
-
-        private NotifyIcon notifyIcon1;
+        private NotifyIcon PassionCareNotify;
     }
 }

@@ -3,9 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PassionCareNotification", "PassionCareNotification.csproj", "{C7FCD805-E0C0-45D8-B186-E122D9169E0F}"
-EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "SetupNotifyPassionCare", "..\SetupNotifyPassionCare\SetupNotifyPassionCare.vdproj", "{1E23C8ED-AA89-423A-863D-71BA619717B2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PassionCareNotification", "PassionCareNotification.csproj", "{C7FCD805-E0C0-45D8-B186-E122D9169E0F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,8 +15,6 @@ Global
 		{C7FCD805-E0C0-45D8-B186-E122D9169E0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7FCD805-E0C0-45D8-B186-E122D9169E0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7FCD805-E0C0-45D8-B186-E122D9169E0F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1E23C8ED-AA89-423A-863D-71BA619717B2}.Debug|Any CPU.ActiveCfg = Debug
-		{1E23C8ED-AA89-423A-863D-71BA619717B2}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
