@@ -35,10 +35,10 @@
             // 
             // PassionCareNotify
             // 
-            PassionCareNotify.BalloonTipIcon = ToolTipIcon.Info;
             PassionCareNotify.Icon = (Icon)resources.GetObject("PassionCareNotify.Icon");
             PassionCareNotify.Text = "PassionCareNotify";
             PassionCareNotify.Visible = true;
+            PassionCareNotify.MouseDoubleClick += PassionCareNotify_MouseDoubleClick;
             // 
             // PassionCarenotification
             // 

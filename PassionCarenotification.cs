@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.VisualBasic.FileIO;
+using Newtonsoft.Json;
 using System.Configuration;
 
 namespace PassionCareNotification
@@ -13,7 +13,7 @@ namespace PassionCareNotification
             InitializeSignalRConnection();
         }
 
-        public void InitializeSignalRConnection()
+        public async void InitializeSignalRConnection()
         {
             var appsettings = ConfigurationManager.AppSettings;
             this.ShowInTaskbar = false;
@@ -35,7 +35,7 @@ namespace PassionCareNotification
                 }
             });
 
-            _connection.InvokeAsync("SetUserId", UserIdentity());
+            _connection.InvokeAsync("SetUserId", await UserIdentity());
 
             _connection.On<string>("ReceiveNotification", message =>
             {
@@ -49,220 +49,35 @@ namespace PassionCareNotification
             };
         }
 
-        public static string GetExeLocation()
+
+        public async Task<string> UserIdentity()
         {
-            try
+            string userName = string.Empty, password = string.Empty;
+            var appsettings = ConfigurationManager.AppSettings;
+            string loginApi = appsettings["loginapi"];
+            // Specify the path to your text file
+            string UsernamefilePath = "C:\\PassionCareNotification\\Username.txt";
+            string PasswordfilePath = "C:\\PassionCareNotification\\Password.txt";
+
+            if (File.Exists(UsernamefilePath) && File.Exists(PasswordfilePath))
             {
-                string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
-                return Path.GetDirectoryName(exePath);
+                using (StreamReader reader = new StreamReader(UsernamefilePath))
+                {
+                    userName = reader.ReadLine();
+                }
+                using (StreamReader reader = new StreamReader(PasswordfilePath))
+                {
+                    password = reader.ReadLine();
+                }
+                bool response = await loginMethod(userName, password, loginApi);
+                if (response)
+                {
+                    return userName;
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-                return null;
-            }
+            return "NullFakeBuddy";
         }
 
-        public string UserIdentity()
-        {
-            #region oldCode
-            //var appSettings = ConfigurationManager.AppSettings;
-            //string FilePathName = appSettings["UserIdentityLocation"];
-            //if (FilePathName != null)
-            //{
-            //    try
-            //    {
-            //        if (File.Exists(FilePathName))
-            //        {
-            //            string fileAllText = File.ReadAllText(FilePathName);
-            //            return fileAllText;
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        Console.WriteLine($"{ex.Message}");
-            //        return "0";
-            //    }
-            //}
-            //return "0";
-            #endregion
-            string destinationFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string downloadFolder = "";
-            downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
-            string latestFilename = LatestFileUserInfoPassionCare(downloadFolder);
-
-            if (Directory.Exists(Path.Combine(destinationFolder, "PassionCareNotification")))
-            {
-                if (Directory.GetFiles(Path.Combine(destinationFolder, "PassionCareNotification")).Length > 0)
-                {
-                    string lastFile = LatestFileUserInfoPassionCare(Path.Combine(destinationFolder, "PassionCareNotification"));
-                    string user = ReadValueFrom(lastFile);
-                    if (user != null)
-                    {
-                        return user;
-                    }
-                }
-            }
-            else if (File.Exists(latestFilename))
-            {
-                downloadFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
-                string sourceFilePath = latestFilename;
-                if (File.Exists(sourceFilePath))
-                {
-                    string destinationFilePath = Path.Combine(destinationFolder, "PassionCareNotification");
-                    try
-                    {
-                        Directory.CreateDirectory(destinationFilePath);
-                        if (Directory.GetFiles(destinationFilePath).Length > 0)
-                        {
-                            if (File.Exists(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath))))
-                            {
-                                DeleteFilesInFolder(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath)));
-                            }
-                        }
-                        File.Copy(sourceFilePath, Path.Combine(destinationFilePath, Path.GetFileName(latestFilename)));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Error: " + ex.Message);
-                    }
-                }
-            }
-            else
-            {
-                downloadFolder = GetExeLocation();
-                latestFilename = LatestFileUserInfoPassionCare(downloadFolder);
-                string sourceFilePath = latestFilename;
-                if (File.Exists(sourceFilePath))
-                {
-                    string destinationFilePath = Path.Combine(destinationFolder, "PassionCareNotification");
-                    try
-                    {
-                        Directory.CreateDirectory(destinationFilePath);
-                        if (File.Exists(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath))))
-                        {
-                            DeleteFilesInFolder(Path.Combine(destinationFilePath, Path.GetFileName(sourceFilePath)));
-                        }
-                        File.Copy(sourceFilePath, Path.Combine(destinationFilePath, Path.GetFileName(latestFilename)));
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("Error: " + ex.Message);
-                    }
-                }
-                else
-                {
-                    return "0";
-                }
-            }
-
-            string destinationFilePatha = Path.Combine(destinationFolder, "PassionCareNotification");
-            if (File.Exists(LatestFileUserInfoPassionCare(destinationFilePatha)))
-            {
-                string userId = ReadValueFrom(LatestFileUserInfoPassionCare(destinationFilePatha));
-                if (userId != null)
-                {
-                    return userId;
-                }
-            }
-            return "0";
-        }
-
-        private string LatestFileUserInfoPassionCare(string downloadFolder)
-        {
-            int columnIndexToRead = 0;
-
-            string pattern = "UserInfoPassionCare";
-            string lastFileName = "";
-
-            string[] files = Directory.GetFiles(downloadFolder)
-            .Where(x => Path.GetFileName(x).StartsWith(pattern, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-            var indexes = files.Select(file =>
-            {
-                string fileName = Path.GetFileNameWithoutExtension(file);
-                int startIndex = fileName.IndexOf('(');
-                int endIndex = fileName.LastIndexOf(')');
-
-                if (startIndex >= 0 && endIndex > startIndex)
-                {
-                    string indexStr = fileName.Substring(startIndex + 1, endIndex - startIndex - 1);
-                    if (int.TryParse(indexStr, out int index))
-                    {
-                        return index;
-                    }
-                }
-                return -1;
-
-            }).Where(index => index >= 0).ToList();
-
-            if (indexes.Count == 0)
-            {
-                lastFileName = "UserInfoPassionCare.csv";
-            }
-            else if (indexes.Count == -1)
-            {
-                lastFileName = "UserInfoPassionCare.csv";
-            }
-            else
-            {
-                int maxIndex = indexes.Max();
-                lastFileName = $"{pattern} ({maxIndex}).csv";
-            }
-            string lastFilePath = Path.Combine(downloadFolder, lastFileName);
-            return lastFilePath;
-        }
-
-        public static void DeleteFilesInFolder(string filePath)
-        {
-            try
-            {
-                if (File.Exists(filePath))
-                {
-                    File.Delete(filePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-            }
-        }
-
-        private string ReadValueFrom(string lastFilePath)
-        {
-            int columnIndexToRead = 0;
-            try
-            {
-                using (TextFieldParser parser = new TextFieldParser(lastFilePath))
-                {
-                    parser.TextFieldType = FieldType.Delimited;
-                    parser.SetDelimiters(",");
-
-                    while (!parser.EndOfData)
-                    {
-                        string[] fields = parser.ReadFields();
-
-                        if (columnIndexToRead >= 0 && columnIndexToRead < fields.Length)
-                        {
-                            string columnValue = fields[columnIndexToRead];
-                            return columnValue;
-                        }
-                        else
-                        {
-                            return "0";
-                        }
-                    }
-                }
-
-            }
-            catch (Exception)
-            {
-                return "0";
-
-            }
-            return "0";
-        }
 
         public void ReceiveMessageToUser(string message)
         {
@@ -272,6 +87,53 @@ namespace PassionCareNotification
             PassionCareNotify.BalloonTipTitle = message.ToString();
             PassionCareNotify.BalloonTipText = "Notification By PassionCare.";
             PassionCareNotify.ShowBalloonTip(100);
+        }
+
+        private void PassionCareNotify_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private async Task<bool> loginMethod(string userName, string password, string loginApi)
+        {
+            using (HttpClient httpClient = new HttpClient())
+            {
+                // Prepare the data to be sent in the request body
+                var data = new
+                {
+                    UserName = userName,
+                    Password = password,
+                    Organization = "Datavanced"
+                };
+                string jsonData = JsonConvert.SerializeObject(data);
+                var content = new StringContent(jsonData, System.Text.Encoding.UTF8, "application/json");
+
+                try
+                {
+                    HttpResponseMessage response = await httpClient.PostAsync(loginApi, content);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string jsonContent = await response.Content.ReadAsStringAsync();
+
+                        ResponseMessage response1 = JsonConvert.DeserializeObject<ResponseMessage>(jsonContent);
+
+                        if (response1.ResponseCode == 200)
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error: {ex.Message}", "Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+
+            return false;
         }
     }
 }
