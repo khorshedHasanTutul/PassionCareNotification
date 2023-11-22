@@ -13,7 +13,7 @@ namespace PassionCareNotification
             InitializeSignalRConnection();
         }
 
-        public async void InitializeSignalRConnection()
+        public void InitializeSignalRConnection()
         {
             var appsettings = ConfigurationManager.AppSettings;
             this.ShowInTaskbar = false;
@@ -23,7 +23,7 @@ namespace PassionCareNotification
                 .WithAutomaticReconnect()
                 .Build();
 
-            _connection.StartAsync().ContinueWith(task =>
+             _connection.StartAsync().ContinueWith(task =>
             {
                 if (task.IsFaulted)
                 {
@@ -35,7 +35,7 @@ namespace PassionCareNotification
                 }
             });
 
-            _connection.InvokeAsync("SetUserId", await UserIdentity());
+            _connection.InvokeAsync("SetUserId", UserIdentity());
 
             _connection.On<string>("ReceiveNotification", message =>
             {
@@ -50,42 +50,44 @@ namespace PassionCareNotification
         }
 
 
-        public async Task<string> UserIdentity()
+        public string UserIdentity()
         {
             string userName = string.Empty, password = string.Empty;
             var appsettings = ConfigurationManager.AppSettings;
             string loginApi = appsettings["loginapi"];
             // Specify the path to your text file
             string UsernamefilePath = "C:\\PassionCareNotification\\Username.txt";
-            string PasswordfilePath = "C:\\PassionCareNotification\\Password.txt";
+           // string PasswordfilePath = "C:\\PassionCareNotification\\Password.txt";
 
-            if (File.Exists(UsernamefilePath) && File.Exists(PasswordfilePath))
+            if (File.Exists(UsernamefilePath))
             {
                 using (StreamReader reader = new StreamReader(UsernamefilePath))
                 {
                     userName = reader.ReadLine();
                 }
-                using (StreamReader reader = new StreamReader(PasswordfilePath))
-                {
-                    password = reader.ReadLine();
-                }
-                bool response = await loginMethod(userName, password, loginApi);
-                if (response)
-                {
-                    return userName;
-                }
+                return userName.Trim();
+
+                //using (StreamReader reader = new StreamReader(PasswordfilePath))
+                //{
+                //    password = reader.ReadLine();
+                //}
+                //bool response = await loginMethod(userName, password, loginApi);
+                //if (response)
+                //{
+                //    return userName;
+                //}
             }
             return "NullFakeBuddy";
         }
 
-
         public void ReceiveMessageToUser(string message)
         {
             PassionCareNotify.Icon = new System.Drawing.Icon(Path.GetFullPath("bell-icon2.ico"));
-            PassionCareNotify.Text = "Notification By PassionCare.";
+            //PassionCareNotify.Text = "Notification By PassionCare.";
             PassionCareNotify.Visible = true;
-            PassionCareNotify.BalloonTipTitle = message.ToString();
-            PassionCareNotify.BalloonTipText = "Notification By PassionCare.";
+            //PassionCareNotify.BalloonTipTitle = ;
+            PassionCareNotify.BalloonTipText = message.ToString();
+            
             PassionCareNotify.ShowBalloonTip(100);
         }
 

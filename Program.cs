@@ -8,7 +8,7 @@ namespace PassionCareNotification
         static void Main()
         {
             string startupFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.Startup);
-            string shortcutPath = Path.Combine(startupFolderPath, "PassionCareNotification.lnk");
+            string shortcutPath = Path.Combine(startupFolderPath, "PassionCareNotify.lnk");
 
             if (!System.IO.File.Exists(shortcutPath))
             {
