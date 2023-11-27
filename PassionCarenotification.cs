@@ -23,23 +23,23 @@ namespace PassionCareNotification
                 .WithAutomaticReconnect()
                 .Build();
 
-             _connection.StartAsync().ContinueWith(task =>
-            {
-                if (task.IsFaulted)
-                {
+            _connection.StartAsync().ContinueWith(task =>
+           {
+               if (task.IsFaulted)
+               {
 
-                }
-                else
-                {
+               }
+               else
+               {
 
-                }
-            });
+               }
+           });
 
             _connection.InvokeAsync("SetUserId", UserIdentity());
 
-            _connection.On<string>("ReceiveNotification", message =>
+            _connection.On<string, string, string , string>("ReceiveNotification", (message, twilioMessageId, contactId, twilioContactId) =>
             {
-                ReceiveMessageToUser(message);
+                ReceiveMessageToUser(message, twilioMessageId,contactId, twilioContactId);
             });
 
             _connection.Closed += async (exception) =>
@@ -57,7 +57,7 @@ namespace PassionCareNotification
             string loginApi = appsettings["loginapi"];
             // Specify the path to your text file
             string UsernamefilePath = "C:\\PassionCareNotification\\Username.txt";
-           // string PasswordfilePath = "C:\\PassionCareNotification\\Password.txt";
+            // string PasswordfilePath = "C:\\PassionCareNotification\\Password.txt";
 
             if (File.Exists(UsernamefilePath))
             {
@@ -80,20 +80,19 @@ namespace PassionCareNotification
             return "NullFakeBuddy";
         }
 
-        public void ReceiveMessageToUser(string message)
+        public void ReceiveMessageToUser(string message,string twillioMessageId, string contactId, string twilioContactId)
         {
+            var appsettings = ConfigurationManager.AppSettings;
+            string redirectlink = appsettings["redirectlink"];
             PassionCareNotify.Icon = new System.Drawing.Icon(Path.GetFullPath("bell-icon2.ico"));
             //PassionCareNotify.Text = "Notification By PassionCare.";
             PassionCareNotify.Visible = true;
             //PassionCareNotify.BalloonTipTitle = ;
             PassionCareNotify.BalloonTipText = message.ToString();
-            
+            PassionCareNotify.Tag = redirectlink+ twillioMessageId+"/"+contactId+"/"+twilioContactId;
+            PassionCareNotify.BalloonTipClicked -= PassionCareNotify_Click;
+            PassionCareNotify.BalloonTipClicked += PassionCareNotify_Click;
             PassionCareNotify.ShowBalloonTip(100);
-        }
-
-        private void PassionCareNotify_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-
         }
 
         private async Task<bool> loginMethod(string userName, string password, string loginApi)
@@ -136,6 +135,42 @@ namespace PassionCareNotification
             }
 
             return false;
+        }
+
+        private void PassionCareNotify_Click(object sender, EventArgs e)
+        {
+            string link = PassionCareNotify.Tag as string;
+
+            if (!string.IsNullOrEmpty(link))
+            {
+                // Implement the logic to navigate to the desired page
+                // For example, you can open a new form, navigate to a URL, etc.
+                OpenDesiredPage(link);
+                PassionCareNotify.BalloonTipClicked -= PassionCareNotify_Click;
+            }
+        }
+        private void OpenDesiredPage(string link)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(link))
+                {
+                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = link,
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                else
+                {
+                    MessageBox.Show("Invalid link. Unable to open the desired page.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening the link: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
