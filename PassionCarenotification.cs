@@ -37,9 +37,9 @@ namespace PassionCareNotification
 
             _connection.InvokeAsync("SetUserId", UserIdentity());
 
-            _connection.On<string, string, string , string>("ReceiveNotification", (message, twilioMessageId, contactId, twilioContactId) =>
+            _connection.On<string, string, string , string, string, string>("ReceiveNotification", (message, twilioMessageId, contactId, twilioContactId , name, phoneNumber) =>
             {
-                ReceiveMessageToUser(message, twilioMessageId,contactId, twilioContactId);
+                ReceiveMessageToUser(message, twilioMessageId,contactId, twilioContactId, name , phoneNumber);
             });
 
             _connection.Closed += async (exception) =>
@@ -80,14 +80,14 @@ namespace PassionCareNotification
             return "NullFakeBuddy";
         }
 
-        public void ReceiveMessageToUser(string message,string twillioMessageId, string contactId, string twilioContactId)
+        public void ReceiveMessageToUser(string message,string twillioMessageId, string contactId, string twilioContactId, string name , string phoneNumber)
         {
             var appsettings = ConfigurationManager.AppSettings;
             string redirectlink = appsettings["redirectlink"];
             PassionCareNotify.Icon = new System.Drawing.Icon(Path.GetFullPath("bell-icon2.ico"));
             //PassionCareNotify.Text = "Notification By PassionCare.";
             PassionCareNotify.Visible = true;
-            //PassionCareNotify.BalloonTipTitle = ;
+            PassionCareNotify.BalloonTipTitle ="From:"+name +"-"+phoneNumber;
             PassionCareNotify.BalloonTipText = message.ToString();
             PassionCareNotify.Tag = redirectlink+ twillioMessageId+"/"+contactId+"/"+twilioContactId;
             PassionCareNotify.BalloonTipClicked -= PassionCareNotify_Click;
